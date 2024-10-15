@@ -1,6 +1,4 @@
-Here’s an updated `README.md` file for your `mashtiksh.js` library, including a dedicated **Usage** section and a more detailed **API Documentation** section:
 
-```markdown
 # Mashtiksh Neural Network Library
 
 Mashtiksh is a lightweight JavaScript library for creating and training neural networks. It provides a simple and intuitive interface to implement various neural network architectures, making it suitable for both beginners and experienced developers in the field of machine learning.
