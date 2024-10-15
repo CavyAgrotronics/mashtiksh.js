@@ -1,19 +1,32 @@
-# Mashtiksh.js
+# Mashtiksh Neural Network Library
 
-**Mashtiksh.js** is a lightweight JavaScript library for creating and training neural networks using matrix operations. It provides a simple API for defining neural network architectures, performing feedforward and backpropagation, and customizing the learning process with various activation functions.
+Mashtiksh is a JavaScript library for building and training neural networks. It provides an intuitive interface to create neural networks with customizable parameters, making it suitable for both beginners and advanced users.
 
 ## Features
 
-- **Matrix Operations**: Simplified matrix handling, including addition, subtraction, multiplication, transposition, and mapping.
-- **Neural Network Construction**: Easy setup of neural networks with customizable layers and nodes.
-- **Multiple Activation Functions**: Support for different activation functions including Sigmoid, Tanh, ReLU, and Softmax.
-- **Backpropagation**: Automatic training with gradient descent and backpropagation.
-- **Logging**: Option to log training progress and error at specified intervals.
-- **Early Stopping**: Mechanism to stop training early if the error falls below a specified threshold for a defined number of consecutive iterations.
+- Simple API for creating and training neural networks
+- Support for multiple activation functions (sigmoid, relu)
+- Training using backpropagation
+- Matrix operations to facilitate neural network computations
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Importing the Library](#importing-the-library)
+  - [Creating a Neural Network](#creating-a-neural-network)
+  - [Training the Neural Network](#training-the-neural-network)
+  - [Making Predictions](#making-predictions)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
 
-Include the **Mashtiksh.js** library in your HTML file:
+To use the Mashtiksh library in your project, you can either clone the repository or download the library file.
 
-```html
-<script src="path/to/mashtiksh.js"></script>
+### Clone the Repository
+
+```bash
+git clone https://github.com/<your-username>/mashtiksh.git
+
