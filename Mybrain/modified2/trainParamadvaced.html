@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Neural Network with CSV Dataset and Parameters</title>
+  <script src="mashtiksh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    h1 {
+      color: #333;
+    }
+    #csvFileInput {
+      margin: 20px 0;
+    }
+    #fieldSelection, #trainingParameters {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 600px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    pre {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 600px;
+      overflow-x: auto;
+    }
+    input[type="number"], select {
+      padding: 8px;
+      width: 100%;
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Upload CSV and Train Neural Network</h1>
+  <input type="file" id="csvFileInput" accept=".csv">
+  
+  <div id="fieldSelection" style="display: none;">
+    <h2>Select Fields</h2>
+    <form id="fieldForm">
+      <table>
+        <thead>
+          <tr>
+            <th>Features</th>
+            <th>Input</th>
+            <th>Output</th>
+          </tr>
+        </thead>
+        <tbody id="fields"></tbody>
+      </table>
+      <button type="button" onclick="generateDataset()">Generate Dataset</button>
+    </form>
+  </div>
+
+  <div id="trainingParameters" style="display: none;">
+  <h2>Set Training Parameters</h2>
+  <form id="trainingForm">
+    <label for="iterations">Iterations:</label>
+    <input type="number" id="iterations" name="iterations" value="10000">
+
+    <label for="learningrate">Learning Rate:</label>
+    <input type="number" step="0.01" id="learningrate" name="learningrate" value="0.1">
+	<label for="Error">Error:</label>
+    <input type="number" step="0.01" id="errors" name="errors" value="0.05">
+
+
+    <label for="hiddenLayers">Hidden Layers:</label>
+    <input type="number" id="hiddenLayers" name="hiddenLayers" value="5">
+
+    <label for="activation">Activation Function:</label>
+    <select id="activation" name="activation">
+      <option value="sigmoid">Sigmoid</option>
+      <option value="tanh">Tanh</option>
+      <option value="relu">ReLU</option>
+      <option value="softmax">Softmax</option>
+    </select>
+
+    <label for="trainPercentage">Training Data Percentage:</label>
+    <input type="number" id="trainPercentage" name="trainPercentage" value="80" min="0" max="100">
+	<label for="accuracyThreshold">Accuracy Threshold (%):</label>
+    <input type="number" id="accuracyThreshold" name="accuracyThreshold" value="95" min="0" max="100">
+    <label for="trainingRepetitions">Training Repetitions:</label>
+    <input type="number" id="trainingRepetitions" name="trainingRepetitions" value="1" min="1">
+
+    <button type="button" onclick="startTraining()">Start Training</button>
+  </form>
+</div>
+<div id="chartContainer" style="display: none;">
+    <canvas id="dataChart"></canvas>
+</div>
+<div id="trainingResults" style="display: none;">
+    <h2>Training Results</h2>
+    <div id="accuracyOutput"></div>
+    <div id="predictionOutput"></div>
+</div>
+  
+  <pre id="output"></pre>
+
+  <script>
+    let globalDataset = [];
+    let inputHead = [];
+    let outputHead = [];
+    let outputClasses = [];
+
+    document.getElementById('csvFileInput').addEventListener('change', handleFileSelect, false);
+
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const text = e.target.result;
+          processCSV(text);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function processCSV(csv) {
+      const lines = csv.split('\n').filter(line => line.trim() !== '');
+      const headers = lines[0].split(',');
+
+      const fieldsTbody = document.getElementById('fields');
+      fieldsTbody.innerHTML = '';
+
+      headers.forEach((header, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${header}</td>
+          <td><input type="checkbox" name="input" value="${index}" onchange="toggleCheckboxes(${index}, 'input')"></td>
+          <td><input type="checkbox" name="output" value="${index}" onchange="toggleCheckboxes(${index}, 'output')"></td>
+        `;
+        fieldsTbody.appendChild(tr);
+      });
+
+      document.getElementById('fieldSelection').style.display = 'block';
+    }
+
+    function toggleCheckboxes(index, type) {
+      const inputCheckbox = document.querySelector(`input[name="input"][value="${index}"]`);
+      const outputCheckbox = document.querySelector(`input[name="output"][value="${index}"]`);
+
+      if (type === 'input' && inputCheckbox.checked) {
+        outputCheckbox.disabled = true;
+      } else if (type === 'input' && !inputCheckbox.checked) {
+        outputCheckbox.disabled = false;
+      }
+
+      if (type === 'output' && outputCheckbox.checked) {
+        inputCheckbox.disabled = true;
+      } else if (type === 'output' && !outputCheckbox.checked) {
+        inputCheckbox.disabled = false;
+      }
+    }
+
+    function generateDataset() {
+      const inputIndices = Array.from(document.querySelectorAll('input[name="input"]:checked')).map(input => parseInt(input.value));
+      const outputIndices = Array.from(document.querySelectorAll('input[name="output"]:checked')).map(output => parseInt(output.value));
+
+      const csv = document.getElementById('csvFileInput').files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        const data = lines.slice(1).map(line => line.split(','));
+        const headers = lines[0].split(',');
+
+        inputHead = inputIndices.map(index => headers[index]);
+
+        // Handle output head and classes
+        const outputField = headers[outputIndices[0]];
+        const uniqueClasses = [...new Set(data.map(row => row[outputIndices[0]]))];
+
+        if (isNaN(uniqueClasses[0])) {
+          outputHead = uniqueClasses;
+          outputClasses = uniqueClasses.map((_, idx) => Array(uniqueClasses.length).fill(0).map((_, i) => i === idx ? 1 : 0));
+        } else {
+          outputHead = outputIndices.map(index => headers[index]);
+        }
+
+        globalDataset = data.map(row => {
+          const input = inputIndices.map(index => parseFloat(row[index]));
+          if (isNaN(uniqueClasses[0])) {
+            const outputClass = row[outputIndices[0]];
+            const output = outputClasses[uniqueClasses.indexOf(outputClass)];
+            return { input, output };
+          } else {
+            const output = outputIndices.map(index => parseFloat(row[index]));
+            return { input, output };
+          }
+        });
+
+        document.getElementById('trainingParameters').style.display = 'block';
+		visualizeDataset();
+      };
+      reader.readAsText(csv);
+    }
+function visualizeDataset() {
+    console.log("Visualizing dataset...");
+
+    const ctx = document.getElementById('dataChart').getContext('2d');
+
+    if (globalDataset.length === 0) {
+        console.error('No data available for visualization.');
+        return;
+    }
+
+    const inputData = globalDataset.map(d => d.input[0]); // Change to d.input[n] for other features
+    console.log("Input data for chart:", inputData); // Log input data
+
+    if (inputData.length === 0) {
+        console.error('No input data available for visualization.');
+        return;
+    }
+
+    const labels = inputData.map((_, idx) => `Data ${idx + 1}`);
+
+    const chartData = {
+        labels: labels,
+        datasets: [{
+            label: 'Feature Distribution',
+            data: inputData,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+        }]
+    };
+
+    // Check if dataChart is already defined and is an instance of Chart
+    if (window.dataChart instanceof Chart) {
+        window.dataChart.destroy(); // Destroy the existing chart instance
+    }
+
+    // Create a new chart instance
+    window.dataChart = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    document.getElementById('chartContainer').style.display = 'block';
+}
+
+
+    function startTraining() {
+      const iterations = parseInt(document.getElementById('iterations').value);
+      const learningrate = parseFloat(document.getElementById('learningrate').value);
+      const hiddenLayers = parseInt(document.getElementById('hiddenLayers').value);
+      const activation = document.getElementById('activation').value;
+      const maxIterations = document.getElementById('trainingRepetitions').value;
+	  const errors = parseFloat(document.getElementById('errors').value);
+	  const accuracyThreshold = parseFloat(document.getElementById('accuracyThreshold').value);
+      const trainingParams = {
+        inputs: globalDataset[0].input.length,
+        hiddenLayers: hiddenLayers,
+        outputs: globalDataset[0].output.length,
+        learningrate: learningrate,
+        activation: activation,
+        errors:errors,
+        log: true,
+        steps: 500,
+        iterations: iterations
+      };
+
+      const nn = new NeuralNetwork(trainingParams);
+
+      const shuffledData = shuffle(globalDataset);
+      const trainSize = Math.floor(shuffledData.length * 0.8);
+      const trainingData = shuffledData.slice(0, trainSize);
+      const testData = shuffledData.slice(trainSize);
+
+      let accuracy = 0;
+      let iterationCount = 0;
+      let predictionResults = [];
+
+      while (accuracy < 100 && iterationCount < maxIterations) {
+        console.log(`Training Iteration: ${iterationCount + 1}`);
+
+        nn.trainNetwork(trainingData);
+
+        let correctPredictions = 0;
+        testData.forEach(data => {
+          const output = nn.feedforward(data.input);
+          const predictedClass = output.indexOf(Math.max(...output));
+          const actualClass = data.output.indexOf(Math.max(...data.output));
+
+          const predictedLabel = outputHead[predictedClass];
+          const actualLabel = outputHead[actualClass];
+          predictionResults.push(`Input: ${data.input}, Predicted: ${predictedLabel}, Actual: ${actualLabel}`);
+          if (predictedClass === actualClass) {
+            console.log(`Input: ${data.input}, Predicted: ${predictedLabel}, Actual: ${actualLabel}`);
+            correctPredictions++;
+          } else {
+            console.log(`%cInput: ${data.input}, Predicted: ${predictedLabel}, Actual: ${actualLabel}`, "color: red");
+          }
+        });
+
+        accuracy = (correctPredictions / testData.length) * 100;
+        console.log(`Accuracy after iteration ${iterationCount + 1}: ${accuracy.toFixed(2)}%`);
+
+        iterationCount++;
+      }
+        document.getElementById('trainingResults').style.display = 'block';
+        document.getElementById('accuracyOutput').innerHTML = `Final Accuracy: ${accuracy.toFixed(2)}% after ${iterationCount} iterations.`;
+       <!-- document.getElementById('predictionOutput').innerHTML = `<strong>Predictions:</strong><br>${predictionResults.join('<br>')}`;-->
+
+      if (accuracy >= accuracyThreshold) {
+        console.log(`Training stopped with ${accuracy.toFixed(2)}% accuracy, which meets or exceeds the threshold of ${accuracyThreshold}%.`);
+      } else {
+        console.log(`Training stopped after ${iterationCount} iterations with ${accuracy.toFixed(2)}% accuracy.`);
+      }
+
+      const nnJSON = nn.toJSON();
+   nnJSON.header = {
+   input: inputHead,
+   output: outputHead
+           };
+	nnJSON.trained_with = {
+    record_length: globalDataset.length, // Number of records in the dataset
+    errors: trainingParams.errors.toString(), // Error threshold
+    iterations: iterations, // Number of iterations
+    activation: activation, // Activation function used
+    layers: hiddenLayers + 2, // Hidden layers + input + output layers
+    momentum: (learningrate ).toFixed(2) // Assuming momentum is some function of learning rate; adjust as needed
+  };
+var valid = [];
+
+globalDataset[0].output.forEach((_, i) => {
+    // Filter the data to only include items where output[i] == 1
+    let filteredData = globalDataset.filter(entry => entry.output[i] == 1);
+    
+    // Extract the min and max values for each input feature
+    let minMaxValues = filteredData[0].input.map((_, k) => {
+        let inputs = filteredData.map(entry => parseFloat(entry.input[k]));
+        return {
+            min: Math.min(...inputs),
+            max: Math.max(...inputs)
+        };
+    });
+
+    // Create the rule object
+    valid.push({
+        index: i,
+        min: minMaxValues.map(v => v.min),
+        max: minMaxValues.map(v => v.max)
+    });
+});	
+nnJSON.valid=valid;   
+      console.log("Neural Network JSON:", JSON.stringify(nnJSON, null, 2)); 
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+  </script>
+</body>
+</html>
