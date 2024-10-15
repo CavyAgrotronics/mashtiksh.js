@@ -176,8 +176,3 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 ```
 
-### Key Additions:
-- **Usage Section**: Added detailed instructions for creating a neural network, training it, making predictions, and saving/loading the network.
-- **API Documentation**: Provided comprehensive descriptions of the classes and their methods, along with activation functions.
-
-Feel free to modify any section further or add additional examples and details as needed!
