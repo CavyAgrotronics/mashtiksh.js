@@ -43,7 +43,7 @@ You can clone the repository or download the library directly from GitHub. To in
 
 To create a new neural network instance, you can use the following code snippet:
 
-```arduino
+``` C++
 const nn = new NeuralNetwork({
   inputs: 2,
   hiddenLayers: 3,
